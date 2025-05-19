@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        db: [cassandra, postgres, redis, elasticsearch] # Match directory names
+        db: [cassandra, postgres, redis, elasticsearch, mysql] # Match directory names
 
     steps:
       - name: Checkout code
