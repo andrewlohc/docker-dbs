@@ -1,0 +1,51 @@
+name: Docker DB Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test_databases:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [cassandra, postgres, redis, elasticsearch] # Match directory names
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Docker Compose v2
+        uses: docker/setup-compose-action@v1
+        with:
+          version: latest
+
+      - name: Ensure test.sh is executable in ${{ matrix.db }}
+        run: chmod +x ${{ matrix.db }}/test.sh
+        shell: bash
+
+      - name: Build and run services for ${{ matrix.db }}
+        working-directory: ./${{ matrix.db }}
+        run: docker compose up -d --build
+        shell: bash
+
+      - name: Wait 30 seconds before running tests
+        run: sleep 30
+        shell: bash
+
+      - name: Run tests for ${{ matrix.db }}
+        working-directory: ./${{ matrix.db }}
+        run: ./test.sh
+        shell: bash
+
+      - name: Stop services for ${{ matrix.db }}
+        if: always()
+        working-directory: ./${{ matrix.db }}
+        run: docker compose down
+        shell: bash
