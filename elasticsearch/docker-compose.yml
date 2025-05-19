@@ -1,0 +1,39 @@
+services:
+  elasticsearch:
+    image: elasticsearch:9.0.1
+    container_name: elasticsearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - elasticsearch-network
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false # Disable security for local HTTP access
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  elasticsearch-init:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.1 # Using the same image, assuming it has bash and curl
+    container_name: elasticsearch-init
+    networks:
+      - elasticsearch-network
+    volumes:
+      - ./init.sh:/init.sh
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    command: ["/bin/bash", "/init.sh"]
+    # Ensure init.sh is executable
+    # If init.sh is not executable by default, we might need to add:
+    # entrypoint: ["/bin/sh", "-c", "chmod +x /init.sh && /bin/bash /init.sh"]
+    # Or ensure it's executable on the host and the permissions are preserved.
+    # For now, assuming the image's bash can execute it or it has execute permissions.
+
+networks:
+  elasticsearch-network:
+    driver: bridge
